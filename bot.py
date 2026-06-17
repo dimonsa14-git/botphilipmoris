@@ -144,7 +144,7 @@ async def add_number_start(message: Message):
     await message.answer(
         "📥 Отправь номер.\n\n"
         "Пример:\n"
-        "0683178588"
+        "0681234567"
     )
 
 # -----------------------
