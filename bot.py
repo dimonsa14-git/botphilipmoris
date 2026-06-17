@@ -169,7 +169,7 @@ async def receive_number(message: Message):
         await message.answer(
             "❌ Неверный формат номера.\n\n"
             "Пример:\n"
-            "0683178588"
+            "0681234567"
         )
         return
 
