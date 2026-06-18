@@ -8,7 +8,7 @@ from aiogram import Bot, Dispatcher, F
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.filters import CommandStart
 
-TOKEN = "8961143201:AAFdQ3OUoIIfoDZ8RHN_wRLTKLAjMyWndNM"
+TOKEN = "8954746188:AAG80u5OrqSzZATKRr0LSHhM5CDvri2ZYSQ"
 
 FILE_NAME = "numbers.txt"
 
