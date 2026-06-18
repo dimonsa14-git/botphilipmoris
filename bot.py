@@ -8,7 +8,7 @@ from aiogram import Bot, Dispatcher, F
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.filters import CommandStart
 
-TOKEN = "8954746188:AAG80u5OrqSzZATKRr0LSHhM5CDvri2ZYSQ"
+TOKEN = "8961143201:AAFdQ3OUoIIfoDZ8RHN_wRLTKLAjMyWndNM"
 
 FILE_NAME = "numbers.txt"
 
@@ -67,7 +67,8 @@ waiting_users = set()
 keyboard = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="📱 Дать номер")],
-        [KeyboardButton(text="➕ Добавить номер")]
+        [KeyboardButton(text="➕ Добавить номер")],
+        [KeyboardButton(text="📊 Статистика")]
     ],
     resize_keyboard=True
 )
@@ -82,7 +83,38 @@ async def start(message: Message):
         "✅ Бот запущен",
         reply_markup=keyboard
     )
+# -----------------------
+# СТАТИСТИКА
+# -----------------------
 
+@dp.message(F.text == "📊 Статистика")
+async def statistics(message: Message):
+
+    user_id = message.from_user.id
+    month = datetime.now().strftime("%Y-%m")
+
+    all_numbers = load_numbers()
+    total_numbers = len(all_numbers)
+
+    cursor.execute(
+        """
+        SELECT COUNT(*)
+        FROM user_numbers
+        WHERE user_id = ? AND month = ?
+        """,
+        (user_id, month)
+    )
+
+    used_count = cursor.fetchone()[0]
+
+    remaining = max(0, total_numbers - used_count)
+
+    await message.answer(
+        f"📊 Твоя статистика\n\n"
+        f"📚 Всего номеров в базе: {total_numbers}\n"
+        f"✅ Ты уже использовал: {used_count}\n"
+        f"🆕 Осталось новых номеров: {remaining}"
+    )
 # -----------------------
 # ВЫДАЧА НОМЕРА
 # -----------------------
@@ -169,7 +201,7 @@ async def receive_number(message: Message):
         await message.answer(
             "❌ Неверный формат номера.\n\n"
             "Пример:\n"
-            "0681234567"
+            "0683178588"
         )
         return
 
