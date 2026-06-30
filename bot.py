@@ -71,6 +71,9 @@ def git_pull_latest():
     reset_result = run(f"git reset --hard origin/{GIT_BRANCH}")
     print("ℹ️ git reset --hard:", (reset_result.stdout + reset_result.stderr).strip())
 
+    branch_result = run(f"git checkout -B {GIT_BRANCH}")
+    print("ℹ️ git checkout -B:", (branch_result.stdout + branch_result.stderr).strip())
+
     ensure_writable_files()
 
 
