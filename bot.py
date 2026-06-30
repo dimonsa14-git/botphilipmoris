@@ -2,6 +2,8 @@ import asyncio
 import random
 import sqlite3
 import re
+import os
+import subprocess
 from datetime import datetime
 
 from aiogram import Bot, Dispatcher, F
@@ -11,12 +13,76 @@ from aiogram.filters import CommandStart
 TOKEN = "8954746188:AAG80u5OrqSzZATKRr0LSHhM5CDvri2ZYSQ"
 
 FILE_NAME = "numbers.txt"
+DB_NAME = "numbers.db"
+
+# -----------------------
+# GIT АВТОПУШ
+# -----------------------
+
+GIT_TOKEN = os.getenv("GITHUB_TOKEN")
+GIT_REPO = os.getenv("GITHUB_REPO")          # например: "username/reponame"
+GIT_USER_NAME = os.getenv("GITHUB_USERNAME", "railway-bot")
+GIT_USER_EMAIL = os.getenv("GIT_USER_EMAIL", "railway-bot@example.com")
+GIT_BRANCH = os.getenv("GIT_BRANCH", "main")
+
+
+def run(cmd):
+    return subprocess.run(
+        cmd, shell=True, capture_output=True, text=True
+    )
+
+
+def git_init_if_needed():
+    """Клонирует репозиторий при первом запуске, если папки .git ещё нет."""
+    if not GIT_TOKEN or not GIT_REPO:
+        print("⚠️ GIT_TOKEN/GIT_REPO не заданы — автопуш отключён")
+        return
+
+    if not os.path.exists(".git"):
+        remote_url = f"https://{GIT_TOKEN}@github.com/{GIT_REPO}.git"
+        run("git init")
+        run(f'git remote add origin {remote_url}')
+        run(f'git config user.name "{GIT_USER_NAME}"')
+        run(f'git config user.email "{GIT_USER_EMAIL}"')
+        run(f"git fetch origin {GIT_BRANCH}")
+        # Подтягиваем файлы из репозитория, если они там уже есть
+        run(f"git checkout -t origin/{GIT_BRANCH}")
+    else:
+        run(f'git config user.name "{GIT_USER_NAME}"')
+        run(f'git config user.email "{GIT_USER_EMAIL}"')
+
+
+def git_pull_latest():
+    """Подтягивает актуальные файлы перед стартом бота (если репо уже было)."""
+    if not GIT_TOKEN or not GIT_REPO:
+        return
+    run(f"git pull origin {GIT_BRANCH}")
+
+
+def git_push(message="update data"):
+    """Коммитит и пушит numbers.txt и numbers.db в GitHub."""
+    if not GIT_TOKEN or not GIT_REPO:
+        return
+
+    run(f"git add {FILE_NAME} {DB_NAME}")
+    result = run(f'git commit -m "{message}"')
+
+    # если нечего коммитить — git commit вернёт ошибку, это нормально
+    if "nothing to commit" in result.stdout + result.stderr:
+        return
+
+    push_result = run(f"git push origin {GIT_BRANCH}")
+    if push_result.returncode != 0:
+        print("❌ Ошибка git push:", push_result.stderr)
+    else:
+        print("✅ Изменения запушены в GitHub")
+
 
 # -----------------------
 # БАЗА ДАННЫХ
 # -----------------------
 
-conn = sqlite3.connect("numbers.db")
+conn = sqlite3.connect(DB_NAME)
 cursor = conn.cursor()
 
 cursor.execute("""
@@ -164,6 +230,9 @@ async def give_number(message: Message):
         f"📞 Номер:\n{number}"
     )
 
+    # Пушим обновлённую БД в GitHub
+    git_push(f"used number by {user_id}")
+
 # -----------------------
 # ДОБАВЛЕНИЕ НОМЕРА
 # -----------------------
@@ -211,6 +280,8 @@ async def receive_number(message: Message):
         await message.answer(
             f"✅ Номер добавлен:\n{phone}"
         )
+        # Пушим обновлённый список номеров в GitHub
+        git_push(f"added number {phone}")
     else:
         await message.answer(
             "❌ Такой номер уже существует."
@@ -221,6 +292,8 @@ async def receive_number(message: Message):
 # -----------------------
 
 async def main():
+    git_init_if_needed()
+    git_pull_latest()
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
