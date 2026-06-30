@@ -62,11 +62,14 @@ def git_init_if_needed():
 
 
 def git_pull_latest():
-    """Подтягивает актуальные файлы перед стартом бота (если репо уже было)."""
+    """Принудительно приводит локальные файлы к последней версии из GitHub."""
     if not GIT_TOKEN or not GIT_REPO:
         return
-    result = run(f"git pull origin {GIT_BRANCH}")
-    print("ℹ️ git pull:", (result.stdout + result.stderr).strip())
+    fetch_result = run(f"git fetch origin {GIT_BRANCH}")
+    print("ℹ️ git fetch:", (fetch_result.stdout + fetch_result.stderr).strip())
+
+    reset_result = run(f"git reset --hard origin/{GIT_BRANCH}")
+    print("ℹ️ git reset --hard:", (reset_result.stdout + reset_result.stderr).strip())
 
 
 def git_push(message="update data"):
