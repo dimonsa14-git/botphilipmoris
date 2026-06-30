@@ -10,7 +10,7 @@ from aiogram import Bot, Dispatcher, F
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.filters import CommandStart
 
-TOKEN = "8954746188:AAG80u5OrqSzZATKRr0LSHhM5CDvri2ZYSQ"
+TOKEN = "8954746188:AAFEYN0LGfjz0LyZ9fLpfjZt8EIu_EUpSj0"
 
 FILE_NAME = "numbers.txt"
 DB_NAME = "numbers.db"
