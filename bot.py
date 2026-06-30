@@ -113,18 +113,26 @@ def git_push(message="update data"):
 # БАЗА ДАННЫХ
 # -----------------------
 
-conn = sqlite3.connect(DB_NAME)
-cursor = conn.cursor()
+conn = None
+cursor = None
 
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS user_numbers (
-    user_id INTEGER,
-    phone TEXT,
-    month TEXT
-)
-""")
 
-conn.commit()
+def init_db():
+    """Подключается к БД. Обязательно вызывать ПОСЛЕ git pull, иначе соединение
+    будет держать устаревший файловый дескриптор от файла, который git заменит."""
+    global conn, cursor
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS user_numbers (
+        user_id INTEGER,
+        phone TEXT,
+        month TEXT
+    )
+    """)
+    conn.commit()
+    print("🗄️ БД подключена")
+
 
 # -----------------------
 # РАБОТА С НОМЕРАМИ
@@ -327,6 +335,7 @@ async def main():
     ensure_writable_files()
     git_pull_latest()
     ensure_writable_files()
+    init_db()
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
