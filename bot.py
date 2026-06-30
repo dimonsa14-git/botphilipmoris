@@ -71,6 +71,18 @@ def git_pull_latest():
     reset_result = run(f"git reset --hard origin/{GIT_BRANCH}")
     print("ℹ️ git reset --hard:", (reset_result.stdout + reset_result.stderr).strip())
 
+    ensure_writable_files()
+
+
+def ensure_writable_files():
+    """Гарантирует, что файлы данных доступны для записи (git может ставить readonly права)."""
+    for f in [FILE_NAME, DB_NAME]:
+        if os.path.exists(f):
+            try:
+                os.chmod(f, 0o666)
+            except Exception as e:
+                print(f"⚠️ Не удалось снять readonly с {f}:", e)
+
 
 def git_push(message="update data"):
     """Коммитит и пушит numbers.txt и numbers.db в GitHub."""
@@ -312,7 +324,9 @@ async def receive_number(message: Message):
 
 async def main():
     git_init_if_needed()
+    ensure_writable_files()
     git_pull_latest()
+    ensure_writable_files()
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
