@@ -33,42 +33,58 @@ def run(cmd):
 
 
 def git_init_if_needed():
-    """Клонирует репозиторий при первом запуске, если папки .git ещё нет."""
+    """Настраивает git и remote с токеном при каждом старте контейнера."""
     if not GIT_TOKEN or not GIT_REPO:
         print("⚠️ GIT_TOKEN/GIT_REPO не заданы — автопуш отключён")
         return
 
+    remote_url = f"https://{GIT_TOKEN}@github.com/{GIT_REPO}.git"
+
     if not os.path.exists(".git"):
-        remote_url = f"https://{GIT_TOKEN}@github.com/{GIT_REPO}.git"
         run("git init")
         run(f'git remote add origin {remote_url}')
         run(f'git config user.name "{GIT_USER_NAME}"')
         run(f'git config user.email "{GIT_USER_EMAIL}"')
         run(f"git fetch origin {GIT_BRANCH}")
-        # Подтягиваем файлы из репозитория, если они там уже есть
         run(f"git checkout -t origin/{GIT_BRANCH}")
     else:
+        # .git уже есть (скопирован вместе с репозиторием при сборке Dockerfile),
+        # но remote там без токена — обязательно прописываем его заново
         run(f'git config user.name "{GIT_USER_NAME}"')
         run(f'git config user.email "{GIT_USER_EMAIL}"')
+        check = run("git remote get-url origin")
+        if check.returncode != 0:
+            run(f'git remote add origin {remote_url}')
+        else:
+            run(f'git remote set-url origin {remote_url}')
+
+    print("🔧 Git настроен, remote установлен")
 
 
 def git_pull_latest():
     """Подтягивает актуальные файлы перед стартом бота (если репо уже было)."""
     if not GIT_TOKEN or not GIT_REPO:
         return
-    run(f"git pull origin {GIT_BRANCH}")
+    result = run(f"git pull origin {GIT_BRANCH}")
+    print("ℹ️ git pull:", (result.stdout + result.stderr).strip())
 
 
 def git_push(message="update data"):
     """Коммитит и пушит numbers.txt и numbers.db в GitHub."""
     if not GIT_TOKEN or not GIT_REPO:
+        print("⚠️ git_push пропущен: GIT_TOKEN/GIT_REPO не заданы")
         return
 
-    run(f"git add {FILE_NAME} {DB_NAME}")
+    add_result = run(f"git add {FILE_NAME} {DB_NAME}")
+    if add_result.returncode != 0:
+        print("❌ Ошибка git add:", add_result.stderr)
+
     result = run(f'git commit -m "{message}"')
+    print("ℹ️ git commit:", (result.stdout + result.stderr).strip())
 
     # если нечего коммитить — git commit вернёт ошибку, это нормально
     if "nothing to commit" in result.stdout + result.stderr:
+        print("ℹ️ Нечего коммитить, пуш не требуется")
         return
 
     push_result = run(f"git push origin {GIT_BRANCH}")
