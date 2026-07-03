@@ -204,24 +204,27 @@ async def statistics(message: Message):
     all_numbers = load_numbers()
     total_numbers = len(all_numbers)
 
+    # Сколько номеров уже выдано кому-либо в этом месяце
     cursor.execute(
-        """
-        SELECT COUNT(*)
-        FROM user_numbers
-        WHERE user_id = ? AND month = ?
-        """,
+        "SELECT COUNT(DISTINCT phone) FROM user_numbers WHERE month=?",
+        (month,)
+    )
+    used_total = cursor.fetchone()[0]
+
+    # Сколько номеров получил лично этот пользователь
+    cursor.execute(
+        "SELECT COUNT(*) FROM user_numbers WHERE user_id=? AND month=?",
         (user_id, month)
     )
+    used_by_me = cursor.fetchone()[0]
 
-    used_count = cursor.fetchone()[0]
-
-    remaining = max(0, total_numbers - used_count)
+    available = max(0, total_numbers - used_total)
 
     await message.answer(
-        f"📊 Твоя статистика\n\n"
+        f"📊 Статистика\n\n"
         f"📚 Всего номеров в базе: {total_numbers}\n"
-        f"✅ Ты уже использовал: {used_count}\n"
-        f"🆕 Осталось новых номеров: {remaining}"
+        f"✅ Ты получил в этом месяце: {used_by_me}\n"
+        f"🆕 Свободных номеров осталось: {available}"
     )
 # -----------------------
 # ВЫДАЧА НОМЕРА
@@ -242,8 +245,8 @@ async def give_number(message: Message):
         return
 
     cursor.execute(
-        "SELECT phone FROM user_numbers WHERE user_id=? AND month=?",
-        (user_id, month)
+        "SELECT phone FROM user_numbers WHERE month=?",
+        (month,)
     )
 
     used = [row[0] for row in cursor.fetchall()]
